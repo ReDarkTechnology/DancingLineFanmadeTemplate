@@ -1,2 +1,13 @@
-# DancingLineFanmadeTemplate
+# Dancing Line Fanmade Template - by ReDark Technology
  A template for Unity to make Dancing Line Fan-made levels!
+
+ Features :
+ - Basic Gameplay
+ - Checkpoint
+ - Gems
+ - Menu
+ - Level Locking/Unlocking
+ - Camera Movement
+ - Triggers
+
+ > _"Do not sell this template, it is supposed to be free for everyone who uses it."_

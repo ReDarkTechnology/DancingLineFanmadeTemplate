@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de7f2e4a92e50b74dab7cc7e29d4448a, type: 3}
+  m_Name: HeadphoneSkin
+  m_EditorClassIdentifier: 
+  skinMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  additionalDecoration: {fileID: 2873054718381017231, guid: a45ddfa7938a2224793bafdebf94ee35,
+    type: 3}
+  disableDefaultTail: 0
+  appearEveryFrame:
+    enable: 0
+    instance: {fileID: 0}
+    spawnDelay: 0
+  appearEveryTap:
+    enable: 1
+    scaleAfterSpawning: 0
+    instance: {fileID: 4634818737191000071, guid: 151160700770d9b4095063ec6683b2a0,
+      type: 3}
+  followingObject:
+    enable: 0
+    theObject: {fileID: 0}
