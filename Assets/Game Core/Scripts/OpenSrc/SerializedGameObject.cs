@@ -19,12 +19,7 @@ public class SerializedGameObject {
 	public Vector3 localScale;
 	
 	// Components
-	public bool filterExist;
-	public MeshFilterClass meshFilter;
-	public bool colliderExist;
-	public ColliderClass collider;
-	public bool rendererExist;
-	public MeshRendClass meshRenderer;
+	public List<SerializedComponent> components = new List<SerializedComponent>();
 	
 	public static SerializedGameObject SerializeGameObject(GameObject obj){
 		var cls = new SerializedGameObject();
@@ -57,19 +52,16 @@ public class SerializedGameObject {
 		}
 		
 		var filter = obj.GetComponent<MeshFilter>();
-		cls.filterExist = (filter != null);
-		if(cls.filterExist){
-			cls.meshFilter = MeshFilterClass.GetMeshClassFromRenderer(filter);
+		if(filter != null){
+			cls.components.Add (MeshFilterClass.GetMeshClassFromRenderer(filter).Serialize());
 		}
 		var collider = obj.GetComponent<Collider>();
-		cls.colliderExist = (collider != null);
-		if(cls.filterExist){
-			cls.collider = ColliderClass.GetColliderClassFromObject(obj);
+		if(collider != null){
+			cls.components.Add (ColliderClass.GetColliderClassFromObject(obj).Serialize());
 		}
 		var renderer = obj.GetComponent<MeshRenderer>();
-		cls.rendererExist = (renderer != null);
-		if(cls.filterExist){
-			cls.meshRenderer = MeshRendClass.GetMeshClassFromRenderer(renderer);
+		if(renderer != null){
+			cls.components.Add (MeshRendClass.GetMeshClassFromRenderer(renderer).Serialize());
 		}
 		return cls;
 	}
@@ -78,20 +70,35 @@ public class SerializedGameObject {
 	{
 		var obj = new GameObject();
 		var identity = obj.AddComponent <ObjectIdentity>();
+		obj.name = name;
+		obj.tag = tag;
+		obj.layer = layer;
 		identity.md5 = md5;
+		identity.parentMD5 = parentMD5;
 		identity.cachedPosition = localPosition;
 		identity.cachedEuler = localEulerAngle;
 		identity.cachedScale = localScale;
 		identity.SetAsCache();
 		
-		if (filterExist) {
-			meshFilter.ApplyTo (obj);
-		}
-		if(colliderExist){
-			collider.ApplyTo (obj);
-		}
-		if(rendererExist) {
-			meshRenderer.ApplyTo (obj, diffuse);
+		foreach(var comp in components)
+		{
+			switch (comp.name) {
+				case "ColliderClass":
+					var collider = JsonUtility.FromJson<ColliderClass>(comp.data);
+					collider.ApplyTo(obj);
+					break;
+				case "MeshRendClass":
+					var renderer = JsonUtility.FromJson<MeshRendClass>(comp.data);
+					renderer.ApplyTo(obj);
+					break;
+				case "MeshFilterClass":
+					var filter = JsonUtility.FromJson<MeshFilterClass>(comp.data);
+					filter.ApplyTo(obj);
+					break;
+				default:
+					Debug.LogError("Component is not recognizable");
+					break;
+			}
 		}
 		return identity;
 	}
@@ -100,7 +107,7 @@ public class SerializedGameObject {
 
 #region ComponentClasses
 [Serializable]
-public class ColliderClass{
+public class ColliderClass : SerializableComponent {
 	public enum ColliderType{
 		BoxCol,
 		MeshCol,
@@ -143,11 +150,21 @@ public class ColliderClass{
 		}
 		return cls;
 	}
-	
+	public SerializedComponent Serialize ()
+	{
+		var cls = new SerializedComponent();
+		cls.name = "ColliderClass";
+		cls.data = JsonUtility.ToJson(this);
+		return cls;
+	}
+	public string GetName(){
+		return "ColliderClass";
+	}
 	public void ApplyTo (GameObject gameObject)
 	{
 		if(colType == ColliderClass.ColliderType.BoxCol){
 			BoxCollider col = gameObject.GetComponent<BoxCollider>();
+			if(col == null) col = gameObject.AddComponent<BoxCollider>();
 			col.enabled = enabled;
 			col.center = offset;
 			col.size = size;
@@ -155,6 +172,7 @@ public class ColliderClass{
 		}
 		if(colType == ColliderClass.ColliderType.SphereCol){
 			SphereCollider col = gameObject.GetComponent<SphereCollider>();
+			if(col == null) col = gameObject.AddComponent<SphereCollider>();
 			col.enabled = enabled;
 			col.center = offset;
 			col.radius = radius;
@@ -162,6 +180,7 @@ public class ColliderClass{
 		}
 		if(colType == ColliderClass.ColliderType.MeshCol){
 			MeshCollider col = gameObject.GetComponent<MeshCollider>();
+			if(col == null) col = gameObject.AddComponent<MeshCollider>();
 			col.enabled = enabled;
 			col.convex = convex;
 			return;
@@ -170,7 +189,7 @@ public class ColliderClass{
 }
 
 [Serializable]
-public class MeshRendClass
+public class MeshRendClass : SerializableComponent
 {
 	public bool isEnabled;
 	public Color[] materials;
@@ -186,28 +205,50 @@ public class MeshRendClass
 		cls.materials = colors.ToArray();
 		return cls;
 	}
-    public void ApplyTo (GameObject gameObject, Material diffuse = null)
+	public SerializedComponent Serialize ()
+	{
+		var cls = new SerializedComponent();
+		cls.name = "MeshRendClass";
+		cls.data = JsonUtility.ToJson(this);
+		return cls;
+	}
+	public string GetName(){
+		return "MeshRendClass";
+	}
+	public void ApplyTo (GameObject gameObject)
     {
     	var rend = gameObject.AddComponent <MeshRenderer>();
     	rend.enabled = isEnabled;
     	var mats = new List<Material>();
-    	if(diffuse == null){
-	    	GameObject primitive = GameObject.CreatePrimitive(PrimitiveType.Plane);
-	    	primitive.SetActive(false);
-	 		diffuse = primitive.GetComponent<MeshRenderer>().sharedMaterial;
- 			UnityEngine.Object.DestroyImmediate(primitive);
-    	}
+    	GameObject primitive = GameObject.CreatePrimitive(PrimitiveType.Plane);
+    	primitive.SetActive(false);
+    	var diffuse = primitive.GetComponent<MeshRenderer>().sharedMaterial;
     	foreach (var col in materials)
     	{
     		var mat = new Material(diffuse);
     		mat.color = col;
     		mats.Add(mat);
     	}
+    	rend.materials = mats.ToArray();
+		UnityEngine.Object.DestroyImmediate(primitive);
+    }
+    public void ApplyTo (GameObject gameObject, Material diffuse)
+    {
+    	var rend = gameObject.AddComponent <MeshRenderer>();
+    	rend.enabled = isEnabled;
+    	var mats = new List<Material>();
+    	foreach (var col in materials)
+    	{
+    		var mat = new Material(diffuse);
+    		mat.color = col;
+    		mats.Add(mat);
+    	}
+    	rend.materials = mats.ToArray();
     }
 }
 
 [Serializable]
-public class MeshFilterClass
+public class MeshFilterClass : SerializableComponent
 {
     public Mesh mesh;
     public static MeshFilterClass GetMeshClassFromRenderer(MeshFilter rend)
@@ -218,6 +259,16 @@ public class MeshFilterClass
         };
         return cls;
     }
+	public SerializedComponent Serialize ()
+	{
+		var cls = new SerializedComponent();
+		cls.name = "MeshFilterClass";
+		cls.data = JsonUtility.ToJson(this);
+		return cls;
+	}
+	public string GetName(){
+		return "MeshFilterClass";
+	}
     public void ApplyTo (GameObject gameObject)
     {
     	var filter = gameObject.AddComponent <MeshFilter>();
