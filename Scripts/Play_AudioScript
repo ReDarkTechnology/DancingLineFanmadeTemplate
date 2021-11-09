@@ -1,9 +1,0 @@
-{
-    var targ   = ((LevelProperty)target);
-    var source = targ.gameObject.GetComponent<AudioSource>();
-    if(source == null){
-        source = targ.gameObject.AddComponent<AudioSource>();
-    }
-    source.clip = targ.clip;
-    source.Play();
-}
