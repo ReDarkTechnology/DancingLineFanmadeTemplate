@@ -27,7 +27,8 @@ public class SceneGenerator : ScriptableWizard
 
     //Generated plane meshes are saved and loaded from Plane Meshes folder (you can change it to whatever you want)
     public static string assetSaveLocation = "Assets/Game Core/Scenes";
-
+	
+    public static SceneGenerator self;
     [MenuItem("Dancing Line/Generate New Level...")]
     public static void CreateWizard()
     {
@@ -39,7 +40,7 @@ public class SceneGenerator : ScriptableWizard
         }
 
         //Open Wizard
-        DisplayWizard("Generate New Level", typeof(SceneGenerator));
+        var wiz = DisplayWizard("Generate New Level", typeof(SceneGenerator));
     }
     // disable AccessToStaticMemberViaDerivedType
     private void OnWizardCreate()
@@ -67,7 +68,7 @@ public class SceneGenerator : ScriptableWizard
     	// Spawning base template
     	
     	const string gamePrefabLocation = "Assets/Game Core/Prefabs/BaseTemplate.prefab";
-    	GameObject gamePrefab = (GameObject) PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(gamePrefabLocation));
+    	var gamePrefab = (GameObject) PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(gamePrefabLocation));
     	gamePrefab.name = "Base Template";
     	GameManager manager = gamePrefab.GetComponentInChildren<GameManager>();
     	LineMovement mov = gamePrefab.GetComponentInChildren<LineMovement>();
@@ -93,8 +94,8 @@ public class SceneGenerator : ScriptableWizard
         mat.color = LineColor;
         AssetDatabase.CreateAsset(property, "Assets/Game Core/Levels/" + manager.property.LevelName + "/" + manager.property.LevelName + ".asset");
         AssetDatabase.CreateAsset(mat, "Assets/Game Core/Levels/" + manager.property.LevelName + "/LineMaterial.mat");
-        //AssetDatabase.CreateAsset((Object) s, "Assets/Game Core/Levels/" + manager.property.LevelName + "/" + manager.property.LevelName + ".unity");
         renderer.sharedMaterial = mat;
+        
     	// Spawning camera
     	
     	const string cameraPrefabLocation = "Assets/Game Core/BetterCamera/CameraPivot.prefab";
@@ -107,12 +108,16 @@ public class SceneGenerator : ScriptableWizard
     	cam.targetZ = targetZ;
     	cam.TargetDistance = TargetDistance;
     	cam.pivotOffset = pivotOffset;
+    	
     	// If add ground checked, spawn ground
+    	
     	if(addGround){
     		const string groundLocation = "Assets/Game Core/Prefabs/Wide Ground.prefab";
     		var groundPrefab = (GameObject) PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(groundLocation));
     		groundPrefab.name = "Base Ground";
     	}
+    	
+    	// Save the scene and make the default selection as the manager.
     	
     	Selection.activeObject = manager.gameObject;
         EditorSceneManager.SaveScene(s, "Assets/Game Core/Levels/" + manager.property.LevelName + "/" + manager.property.LevelName + ".unity");

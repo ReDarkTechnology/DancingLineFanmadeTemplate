@@ -59,4 +59,13 @@ public class GravityChange : MonoBehaviour
 		Physics.gravity = targetGravity;
 		Debug.Log("Simulated! Gravity :" + targetGravity + " - Player rotation : " + new Vector3(SimulationCube.transform.eulerAngles.x, mov.transform.eulerAngles.y, SimulationCube.transform.eulerAngles.z));
 	}
+    public static Vector3 Singularite(Vector3 from)
+    {
+        var rot = Quaternion.Euler(from);
+
+        var forward = Vector3.forward;  // fairly common
+
+        var result = rot * forward;
+        return result;
+    }
 }

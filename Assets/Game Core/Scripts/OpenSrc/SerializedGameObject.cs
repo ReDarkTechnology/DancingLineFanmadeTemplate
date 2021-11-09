@@ -1,0 +1,252 @@
+﻿using UnityEngine;
+using System;
+using System.Reflection;
+using System.Collections.Generic;
+
+[Serializable]
+public class SerializedGameObject {
+	
+	// Info
+	public string name;
+	public string tag;
+	public string md5;
+	public string parentMD5;
+	public int layer;
+	
+	// Transform
+	public Vector3 localPosition;
+	public Vector3 localEulerAngle;
+	public Vector3 localScale;
+	
+	// Components
+	public bool filterExist;
+	public MeshFilterClass meshFilter;
+	public bool colliderExist;
+	public ColliderClass collider;
+	public bool rendererExist;
+	public MeshRendClass meshRenderer;
+	
+	public static SerializedGameObject SerializeGameObject(GameObject obj){
+		var cls = new SerializedGameObject();
+		cls.name = obj.name;
+		cls.tag = obj.tag;
+		cls.layer = obj.layer;
+		
+		cls.localPosition = obj.transform.localPosition;
+		cls.localEulerAngle = obj.transform.localEulerAngles;
+		cls.localScale = obj.transform.localScale;
+		
+		var identity = obj.GetComponent <ObjectIdentity>();
+		if (identity == null)
+		{
+			identity = obj.AddComponent <ObjectIdentity>();
+			identity.md5 = Utility.GetMD5();
+		}
+		
+		cls.md5 = identity.md5;
+		
+		if(obj.transform.parent != null)
+		{
+			var identity1 = obj.transform.parent.GetComponent <ObjectIdentity>();
+			if (identity == null)
+			{
+				identity1 = obj.transform.parent.gameObject.AddComponent <ObjectIdentity>();
+				identity1.md5 = Utility.GetMD5();
+			}
+			cls.parentMD5 = identity1.md5;
+		}
+		
+		var filter = obj.GetComponent<MeshFilter>();
+		cls.filterExist = (filter != null);
+		if(cls.filterExist){
+			cls.meshFilter = MeshFilterClass.GetMeshClassFromRenderer(filter);
+		}
+		var collider = obj.GetComponent<Collider>();
+		cls.colliderExist = (collider != null);
+		if(cls.filterExist){
+			cls.collider = ColliderClass.GetColliderClassFromObject(obj);
+		}
+		var renderer = obj.GetComponent<MeshRenderer>();
+		cls.rendererExist = (renderer != null);
+		if(cls.filterExist){
+			cls.meshRenderer = MeshRendClass.GetMeshClassFromRenderer(renderer);
+		}
+		return cls;
+	}
+	
+	public ObjectIdentity Spawn (Material diffuse = null)
+	{
+		var obj = new GameObject();
+		var identity = obj.AddComponent <ObjectIdentity>();
+		identity.md5 = md5;
+		identity.cachedPosition = localPosition;
+		identity.cachedEuler = localEulerAngle;
+		identity.cachedScale = localScale;
+		identity.SetAsCache();
+		
+		if (filterExist) {
+			meshFilter.ApplyTo (obj);
+		}
+		if(colliderExist){
+			collider.ApplyTo (obj);
+		}
+		if(rendererExist) {
+			meshRenderer.ApplyTo (obj, diffuse);
+		}
+		return identity;
+	}
+	
+}
+
+#region ComponentClasses
+[Serializable]
+public class ColliderClass{
+	public enum ColliderType{
+		BoxCol,
+		MeshCol,
+		SphereCol
+	}
+	public ColliderType colType;
+	public bool enabled;
+	[Header("CommonCollider")]
+	public Vector3 offset;
+	[Header("BoxCollider")]
+	public Vector3 size;
+	[Header("SphereCollider")]
+	public float radius;
+	[Header("MeshCollider")]
+	public bool convex;
+	
+	public static ColliderClass GetColliderClassFromObject(GameObject obj){
+		ColliderClass cls = new ColliderClass();
+		if(obj.GetComponent<BoxCollider>() != null){
+			BoxCollider col = obj.GetComponent<BoxCollider>();
+			cls.colType = ColliderType.BoxCol;
+			cls.enabled = col.enabled;
+			cls.offset = col.center;
+			cls.size = col.size;
+		}else{
+			if(obj.GetComponent<MeshCollider>() != null){
+				MeshCollider col = obj.GetComponent<MeshCollider>();
+				cls.colType = ColliderType.MeshCol;
+				cls.enabled = col.enabled;
+				cls.convex = col.convex;
+			}else{
+				if(obj.GetComponent<SphereCollider>() != null){
+					SphereCollider col = obj.GetComponent<SphereCollider>();
+					cls.colType = ColliderType.SphereCol;
+					cls.enabled = col.enabled;
+					cls.offset = col.center;
+					cls.radius = col.radius;
+				}
+			}
+		}
+		return cls;
+	}
+	
+	public void ApplyTo (GameObject gameObject)
+	{
+		if(colType == ColliderClass.ColliderType.BoxCol){
+			BoxCollider col = gameObject.GetComponent<BoxCollider>();
+			col.enabled = enabled;
+			col.center = offset;
+			col.size = size;
+			return;
+		}
+		if(colType == ColliderClass.ColliderType.SphereCol){
+			SphereCollider col = gameObject.GetComponent<SphereCollider>();
+			col.enabled = enabled;
+			col.center = offset;
+			col.radius = radius;
+			return;
+		}
+		if(colType == ColliderClass.ColliderType.MeshCol){
+			MeshCollider col = gameObject.GetComponent<MeshCollider>();
+			col.enabled = enabled;
+			col.convex = convex;
+			return;
+		}
+	}
+}
+
+[Serializable]
+public class MeshRendClass
+{
+	public bool isEnabled;
+	public Color[] materials;
+	public static MeshRendClass GetMeshClassFromRenderer(MeshRenderer rend){
+		var cls = new MeshRendClass(){
+			isEnabled = rend.enabled
+		};
+		var colors = new List<Color>();
+		var mats = rend.sharedMaterials;
+		foreach(var a in mats){
+			colors.Add(a.color);
+		}
+		cls.materials = colors.ToArray();
+		return cls;
+	}
+    public void ApplyTo (GameObject gameObject, Material diffuse = null)
+    {
+    	var rend = gameObject.AddComponent <MeshRenderer>();
+    	rend.enabled = isEnabled;
+    	var mats = new List<Material>();
+    	if(diffuse == null){
+	    	GameObject primitive = GameObject.CreatePrimitive(PrimitiveType.Plane);
+	    	primitive.SetActive(false);
+	 		diffuse = primitive.GetComponent<MeshRenderer>().sharedMaterial;
+ 			UnityEngine.Object.DestroyImmediate(primitive);
+    	}
+    	foreach (var col in materials)
+    	{
+    		var mat = new Material(diffuse);
+    		mat.color = col;
+    		mats.Add(mat);
+    	}
+    }
+}
+
+[Serializable]
+public class MeshFilterClass
+{
+    public Mesh mesh;
+    public static MeshFilterClass GetMeshClassFromRenderer(MeshFilter rend)
+    {
+        MeshFilterClass cls = new MeshFilterClass()
+        {
+            mesh = rend.sharedMesh
+        };
+        return cls;
+    }
+    public void ApplyTo (GameObject gameObject)
+    {
+    	var filter = gameObject.AddComponent <MeshFilter>();
+    	filter.sharedMesh = mesh;
+    }
+}
+
+
+[Serializable]
+public class RigidbodyClass
+{
+	public float drag;
+	public float angularDrag;
+	public float mass;
+	public bool useGravity;
+	public float maxDepenetrationVelocity;
+	public bool isKinematic;
+	public bool freezeRotation;
+	public RigidbodyConstraints constraints;
+	public CollisionDetectionMode collisionDetectionMode;
+}
+[Serializable]
+public class SerializedMember
+{
+	public SerializedMember (string name = null, string variable = null){
+		this.name = name;
+		this.variable = variable;
+	}
+	public string name;
+	public string variable;
+}
+#endregion

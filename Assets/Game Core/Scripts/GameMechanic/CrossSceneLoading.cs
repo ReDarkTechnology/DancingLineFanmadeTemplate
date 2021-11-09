@@ -8,6 +8,7 @@ public class CrossSceneLoading : MonoBehaviour {
     public Text progresstext;
 	public bool TurnedOn;
 	bool isCalled;
+	CanvasGroup canGroup;
 	public float speedFade = 3f;
 	//Save Temporarily
 	[HideInInspector]public bool isIndexCall;
@@ -24,7 +25,7 @@ public class CrossSceneLoading : MonoBehaviour {
 
 	#region Singleton
 	public static CrossSceneLoading myself;
-	void Awake(){
+	void Start(){
 		if(myself == null){
 			myself = this;
 			SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
@@ -34,7 +35,8 @@ public class CrossSceneLoading : MonoBehaviour {
 				Destroy(this.gameObject);
 			}
 		}
-		GetComponent<CanvasGroup> ().alpha = 0;
+		canGroup = GetComponent<CanvasGroup> ();
+		canGroup.alpha = 0;
 		TurnInto(false);
 	}
 	#endregion
@@ -108,14 +110,14 @@ public class CrossSceneLoading : MonoBehaviour {
     public void loaded()
     {
 		TurnedOn = false;
-				isNameCall = false;
-				isIndexCall = false;
+		isNameCall = false;
+		isIndexCall = false;
     }
 	void Update(){
 		// disable once CompareOfFloatsByEqualityOperator
 		if (TurnedOn) {
 			if(!isCalled){
-    			if(GetComponent<CanvasGroup>().alpha == 1){
+    			if(canGroup.alpha == 1){
 					if(isIndexCall){
 						StartCoroutine(LoadAsynchronously(currentIndex));
 						isCalled = true;
@@ -125,24 +127,27 @@ public class CrossSceneLoading : MonoBehaviour {
 						isCalled = true;
 					}
     			}else{
-					GetComponent<CanvasGroup> ().alpha += speedFade * Time.deltaTime;
+					canGroup.alpha += speedFade * Time.deltaTime;
     			}
 			}
 		} else {
 			// disable once CompareOfFloatsByEqualityOperator
-			if(GetComponent<CanvasGroup>().alpha == 0){
+			if(canGroup.alpha == 0){
 				TurnInto(false);
 				isCalled = false;
 			}else{
 				progresstext.text = "100%";
 				slider.value = 100;
-				GetComponent<CanvasGroup> ().alpha -= speedFade * Time.deltaTime;
+				canGroup.alpha -= speedFade * Time.deltaTime;
 			}
 		}
 	}
     void TurnInto(bool to){
-    	GetComponent<CanvasGroup> ().interactable = to;
-    	GetComponent<CanvasGroup> ().blocksRaycasts = to;
+    	canGroup.interactable = to;
+    	canGroup.blocksRaycasts = to;
+    }
+    void OnDestroy(){
+    	SceneManager.activeSceneChanged -= SceneManager_activeSceneChanged;
     }
     public int buildIndex(){
 		return SceneManager.GetActiveScene().buildIndex;
