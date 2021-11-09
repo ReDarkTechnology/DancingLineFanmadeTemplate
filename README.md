@@ -1,7 +1,12 @@
 # Dancing Line Fanmade Template - by ReDark Technology
  A template for Unity to make Dancing Line Fan-made levels!
  
-<img alt=“template-preview” src=“https://github.com/ReDarkTechnology/DancingLineFanmadeTemplate/raw/main/preview.png”>
+ <img
+ src=“https://github.com/ReDarkTechnology/DancingLineFanmadeTemplate/raw/main/preview.png”
+ raw=true
+ alt=“Preview”
+ style=“margin-right: 10px;”
+ />
 
  Features :
  - Basic Gameplay
