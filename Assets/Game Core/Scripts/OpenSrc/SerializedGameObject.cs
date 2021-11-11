@@ -1,12 +1,14 @@
 ﻿using UnityEngine;
 using System;
-using System.Reflection;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Linq;
 
 [Serializable]
 public class SerializedGameObject {
-	
-	// Info
+
+    // Info
+    public bool selfActive;
 	public string name;
 	public string tag;
 	public string md5;
@@ -17,16 +19,21 @@ public class SerializedGameObject {
 	public Vector3 localPosition;
 	public Vector3 localEulerAngle;
 	public Vector3 localScale;
-	
-	// Components
-	public List<SerializedComponent> components = new List<SerializedComponent>();
+
+    // Childs
+    public SerializedGameObject[] childs;
+
+    // Components
+    public List<SerializedComponent> components = new List<SerializedComponent>();
 	
 	public static SerializedGameObject SerializeGameObject(GameObject obj){
 		var cls = new SerializedGameObject();
 		cls.name = obj.name;
 		cls.tag = obj.tag;
 		cls.layer = obj.layer;
-		
+
+        cls.selfActive = obj.activeSelf;
+
 		cls.localPosition = obj.transform.localPosition;
 		cls.localEulerAngle = obj.transform.localEulerAngles;
 		cls.localScale = obj.transform.localScale;
@@ -43,7 +50,7 @@ public class SerializedGameObject {
 		if(obj.transform.parent != null)
 		{
 			var identity1 = obj.transform.parent.GetComponent <ObjectIdentity>();
-			if (identity == null)
+			if (identity1 == null)
 			{
 				identity1 = obj.transform.parent.gameObject.AddComponent <ObjectIdentity>();
 				identity1.md5 = Utility.GetMD5();
@@ -63,7 +70,18 @@ public class SerializedGameObject {
 		if(renderer != null){
 			cls.components.Add (MeshRendClass.GetMeshClassFromRenderer(renderer).Serialize());
 		}
-		return cls;
+
+        var objs = obj.GetComponentsInChildren<Transform>();
+        var rootObjs = new List<SerializedGameObject>();
+        foreach (var ob in objs)
+        {
+            if (ob.gameObject != obj)
+            {
+                rootObjs.Add(SerializeGameObject(ob.gameObject));
+            }
+        }
+        cls.childs = rootObjs.ToArray();
+        return cls;
 	}
 	
 	public ObjectIdentity Spawn (Material diffuse = null)
@@ -73,16 +91,18 @@ public class SerializedGameObject {
 		obj.name = name;
 		obj.tag = tag;
 		obj.layer = layer;
+        obj.SetActive(selfActive);
 		identity.md5 = md5;
 		identity.parentMD5 = parentMD5;
 		identity.cachedPosition = localPosition;
 		identity.cachedEuler = localEulerAngle;
 		identity.cachedScale = localScale;
 		identity.SetAsCache();
-		
-		foreach(var comp in components)
+        identity.Register();
+
+        foreach (var comp in components)
 		{
-			switch (comp.name) {
+            switch (comp.name) {
 				case "ColliderClass":
 					var collider = JsonUtility.FromJson<ColliderClass>(comp.data);
 					collider.ApplyTo(obj);
@@ -99,9 +119,41 @@ public class SerializedGameObject {
 					Debug.LogError("Component is not recognizable");
 					break;
 			}
-		}
-		return identity;
+            /*var component = GetComponent(comp);
+            if(component != null)
+            {
+                component = JsonUtility.FromJson(comp.data, component.GetType());
+                component.ApplyTo (obj);
+            }*/
+        }
+
+        var spawned = new List<ObjectIdentity>();
+        foreach (var child in childs)
+        {
+            var spawn = child.Spawn();
+            spawn.Register();
+            spawned.Add(spawn);
+
+        }
+        foreach (var spawn in spawned)
+        {
+            spawn.SetAsCache();
+        }
+        return identity;
 	}
+
+    public SerializableComponent GetComponent (SerializedComponent component)
+    {
+        var types = Assembly.GetExecutingAssembly().GetTypes().Where(mytype => mytype.GetInterfaces().Contains(typeof(SerializedComponent)));
+        foreach (Type mytype in types)
+        {
+            if (mytype.ToString() == component.name)
+            {
+                return (SerializableComponent)mytype;
+            }
+        }
+        return null;
+    }
 	
 }
 

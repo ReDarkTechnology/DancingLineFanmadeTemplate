@@ -11,7 +11,11 @@ public class ObjectIdentity : MonoBehaviour
 	public Vector3 cachedPosition;
 	public Vector3 cachedEuler;
 	public Vector3 cachedScale;
-	
+
+    public bool isCustomModel;
+
+    public static Dictionary<string, ObjectIdentity> customIdentities = new Dictionary<string, ObjectIdentity>();
+
 	public static Dictionary<string, ObjectIdentity> identities = new Dictionary<string, ObjectIdentity>();
 	
 	public void SetAsCache ()

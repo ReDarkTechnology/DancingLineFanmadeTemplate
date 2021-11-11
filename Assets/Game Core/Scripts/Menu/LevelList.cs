@@ -207,7 +207,7 @@ public class LevelList : MonoBehaviour
 	}
 	public void PlayLevel(){
 		var a = levelInstances[levelIndex];
-		CrossSceneLoading.LoadLevel(a.property.sceneName);
+		CrossSceneLoading.LoadLevel(a.property.sceneName, a.backgroundColor, a.textColor);
 	}
 	public void ChangePanel(){
 		if(BottomNavigation.GetCurrentIndex() == 1){

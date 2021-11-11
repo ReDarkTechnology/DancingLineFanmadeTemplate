@@ -12,12 +12,6 @@
  - Camera Movement
  - Triggers
 
- Plans :
- - Object Serialization ( WIP )
- - World Creation ( Pending... )
- - Better menu/settings ( Pending... )
- - Better loading screen ( Pending... )
-
  > _"Do not sell this template, it is supposed to be free for everyone who uses it."_
 
 Advertisement corner:

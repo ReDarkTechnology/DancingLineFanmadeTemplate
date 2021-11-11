@@ -1,7 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.IO;
 using UnityEngine;
-using System.IO;
+using FullSerializer;
 
 [ExecuteInEditMode]
 public class MonoSerializeObject : MonoBehaviour
@@ -10,7 +9,6 @@ public class MonoSerializeObject : MonoBehaviour
 	public GameObject targetObject;
 	public string serializedFilePath = "gameObject.json";
 	public bool serialize;
-	public bool asCustomModel;
 	
 	public bool spawn;
 	
@@ -22,24 +20,27 @@ public class MonoSerializeObject : MonoBehaviour
 	public ObjectIdentity searchResult;
 	public string searchMd5;
 	public bool search;
-	
+
+    // Serializer (because JsonUtility sucks)
+    // But Full Serializer is slow so please, if you have a suggestion to which serializer to use, tell me.
+    private static readonly fsSerializer _serializer = new fsSerializer();
+
     void Update()
     {
     	if(search){
     		searchResult = ObjectIdentity.GetIdentity(searchMd5);
     		search = false;
     	}
-    	if(serialize){
+        if (serialize) {
     		if(targetObject != null){
     			string a = null;
-    			if(!asCustomModel){
-    				var s = SerializedGameObject.SerializeGameObject(targetObject);
-    				a = JsonUtility.ToJson(s);
-    			}else{
-    				var s = SerializedCustomModel.GetCustomModel(targetObject);
-    				a = JsonUtility.ToJson(s);
-    			}
-    			File.WriteAllText(serializedFilePath, a);
+    			var s = SerializedGameObject.SerializeGameObject(targetObject);
+                fsData data;
+                _serializer.TrySerialize(typeof(SerializedGameObject), s, out data).AssertSuccessWithoutWarnings();
+
+                // emit the data via JSON
+                a = fsJsonPrinter.CompressedJson(data);
+                File.WriteAllText(serializedFilePath, a);
     		}
     		serialize = false;
     	}
@@ -47,13 +48,13 @@ public class MonoSerializeObject : MonoBehaviour
     	{
     		if(File.Exists(serializedFilePath)){
     			var r = File.ReadAllText(serializedFilePath);
-    			if(!asCustomModel){
-    				var c = JsonUtility.FromJson<SerializedGameObject>(r);
-    				c.Spawn();
-    			}else{
-    				var c = JsonUtility.FromJson<SerializedCustomModel>(r);
-    				c.Spawn();
-    			}
+                fsData data = fsJsonParser.Parse(r);
+
+                // deserialize the data
+                object deserialized = null;
+                _serializer.TryDeserialize(data, typeof(SerializedGameObject), ref deserialized).AssertSuccessWithoutWarnings();
+                var c = (SerializedGameObject)deserialized;
+    			c.Spawn();
     		}
     		spawn = false;
     	}

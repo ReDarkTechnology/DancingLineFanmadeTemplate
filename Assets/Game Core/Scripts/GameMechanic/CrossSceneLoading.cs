@@ -4,19 +4,44 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 public class CrossSceneLoading : MonoBehaviour {
+	public Image image;
+	private Color m_backColor = Color.black;
+	private Color m_foreColor = Color.white;
+	private Color backColor { get {return m_backColor;} 
+		set {
+			Color neutral = new Color(value.r, value.g, value.b, 1f);
+			if(image != null) image.color = neutral; 
+			m_backColor = neutral;
+		}
+	}
+	private Color foreColor { 
+		get {return m_foreColor;} 
+		set {
+			foreach (var graphic in foreGraphics)
+			{
+				graphic.color = value;
+			}
+			if(slider != null) slider.transform.Find ("Background").GetComponent<Image>().color = new Color(value.r, value.g, value.b, 0.5f);
+			m_foreColor = value;
+		}
+	}
     public Slider slider;
     public Text progresstext;
+    
+    public Graphic[] foreGraphics;
+    
 	public bool TurnedOn;
-	bool isCalled;
-	CanvasGroup canGroup;
 	public float speedFade = 3f;
+	
 	//Save Temporarily
-	[HideInInspector]public bool isIndexCall;
-	[HideInInspector]public bool isNameCall;
-	[HideInInspector]public int currentIndex;
-	[HideInInspector]public string currentName;
-	[HideInInspector]public int curIndexGoing;
-	[HideInInspector]public string curNameGoing;
+	[HideInInspector] public bool isIndexCall;
+	[HideInInspector] public bool isNameCall;
+	[HideInInspector] public int currentIndex;
+	[HideInInspector] public string currentName;
+	[HideInInspector] public int curIndexGoing;
+	[HideInInspector] public string curNameGoing;
+	[HideInInspector] public bool isCalled;
+	[HideInInspector] public CanvasGroup canGroup;
 
 	void SceneManager_activeSceneChanged(Scene arg0, Scene arg1)
 	{
@@ -40,26 +65,38 @@ public class CrossSceneLoading : MonoBehaviour {
 		TurnInto(false);
 	}
 	#endregion
-    public static void LoadLevel(int SceneIndex)
+	public static void LoadLevel(int SceneIndex, Color backColor = default(Color), Color foreColor = default(Color))
     {
     	if(myself != null){
     		myself.TurnedOn = true;
     		myself.currentIndex = SceneIndex;
     		myself.isIndexCall = true;
     		myself.curIndexGoing = SceneIndex;
+    		if(backColor != default(Color)){
+    			myself.backColor = backColor;
+    		}
+    		if(foreColor != default(Color)){
+    			myself.foreColor = foreColor;
+    		}
     		myself.ResetUI();
     	}else{
     		Debug.LogError("No instance of CrossSceneLoading is found. Force direct call");
     		SceneManager.LoadScene(SceneIndex);
     	}
     }
-    public static void LoadLevel(string SceneName)
+    public static void LoadLevel(string SceneName, Color backColor = default(Color), Color foreColor = default(Color))
     {
     	if(myself != null){
     		myself.TurnedOn = true;
     		myself.currentName = SceneName;
     		myself.isNameCall = true;
     		myself.curNameGoing = SceneName;
+    		if(backColor != default(Color)){
+    			myself.backColor = backColor;
+    		}
+    		if(foreColor != default(Color)){
+    			myself.foreColor = foreColor;
+    		}
     		myself.ResetUI();
     	}else{
     		Debug.LogError("No instance of CrossSceneLoading is found. Force direct call");
