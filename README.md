@@ -15,6 +15,8 @@
  > _"Do not sell this template, it is supposed to be free for everyone who uses it."_
 
 Advertisement corner:
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/F1F26X1KQ)
+
 - Donate me : https://www.paypal.com/paypalme/redarktechnology
-- Buy me a coffee! : https://ko-fi.com/redarktechnology
 - Join my Discord server : https://discord.gg/qxTSBjG4Vg
+
