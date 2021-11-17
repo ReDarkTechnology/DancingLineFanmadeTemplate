@@ -180,8 +180,8 @@ public class LevelList : MonoBehaviour
 				fadeIn = LeanTween.value(0, 1, 0.5f).setOnUpdate((float val) => {
 				                                                 	if(source != null) source.volume = val;
 		        });
-				source.Play();
 				source.time = start;
+				source.Play();
 				currentOrder = new OrderString();
 				StartCoroutine(
 					RepeatAudio(actualDelay, currentOrder)

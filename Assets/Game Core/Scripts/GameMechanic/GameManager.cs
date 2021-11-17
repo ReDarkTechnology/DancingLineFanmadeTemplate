@@ -100,7 +100,6 @@ public class GameManager : MonoBehaviour {
 			if(audioClip != null){
 				//Audio clip doesn't need to be imported and it's ready
 				isAudioReady = true;
-				Debug.Log ("Audio is ready!");
 			}else{
 				if(property.clip == null){
 					Debug.LogError("AudioClip of GameManager has not been assigned. Please assign an AudioClip in order to play the game");
@@ -109,8 +108,9 @@ public class GameManager : MonoBehaviour {
 				}
 			}
 		}
+		if (audioClip == null && !File.Exists(audioPath)) audioLoadType = AudioUsage.NoClip;
 		if(audioLoadType == AudioUsage.NoClip){
-			Debug.Log("No audio was set");
+			Debug.LogError("No audio was set");
 		}
 		gemsInScene = FindObjectsOfType<Gems>();
 		foreach(GameObject hey in triggerHide){
