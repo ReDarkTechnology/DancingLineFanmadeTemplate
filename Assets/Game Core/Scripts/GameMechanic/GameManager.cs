@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour {
+	
 	//Level Variables
 	public LevelProperty property;
 	[HideInInspector]public float levelPercentage;
@@ -15,6 +16,7 @@ public class GameManager : MonoBehaviour {
 	[HideInInspector]public bool isPlayerDie;
 	[HideInInspector]public bool isGameFinished;
 	[HideInInspector]public Gems[] gemsInScene;
+	
 	//UI Variables
 	public Slider audioProgress;
 	public Text percentageProgress;
@@ -28,6 +30,7 @@ public class GameManager : MonoBehaviour {
 	[HideInInspector]public int whichPanel;
 	[HideInInspector]public float timePanel;
 	[HideInInspector]public CanvasGroup[] checkpointsCrowns;
+	
 	//Audio Variables
 	public enum AudioUsage
 	{
@@ -41,13 +44,16 @@ public class GameManager : MonoBehaviour {
 	public float AudioOffset;
 	public bool customEndDuration;
 	public float EndDuration;
-	[HideInInspector]public bool isAudioReady;
+	[HideInInspector]
+	public bool isAudioReady;
 	public AudioSource audioSource;
+	
 	//Line Variables
 	public SkinType skinType;
 	public TailType tailType;
 	public float lineSpeed = 12;
 	public string longTailTag = "Tail", centerTailTag = "Center";
+	
     //Actions
     public event Action<int, Vector3> OnPlayerTap;
     public event Action OnGameFinished;
@@ -56,32 +62,47 @@ public class GameManager : MonoBehaviour {
     public event Action<int> OnCheckpointObtained;
     public event Action<int> OnPlayerDiesInCheckpoint;
     public event Action<int> OnCheckpointReset;
+    
     //Realtime Variables
     public bool isPaused;
-    // Singleton
+    [HideInInspector]
+	public bool isStarted;
+    [HideInInspector]
+	public bool isFinished;
+    
+    //Singleton
     public static GameManager mgr;
+    
     //Instances
-    public LineMovement mov;
+    public LineMovement[] mov;
+    
     void Awake (){
     	mgr = this;
     }
+    
     public static GameManager GetGameManager(){
     	if(GameManager.mgr == null){
     		GameManager.mgr = FindObjectOfType<GameManager>();
     	}
     	return GameManager.mgr;
     }
+    
 	// Use this for initialization
 	private GameObject[] triggerHide;
 	private float previousProgress;
 	private int previousCrowns;
 	private int previousGems;
-	[HideInInspector]public GameInput theInputData;
+	
+	[HideInInspector]
+	public GameInput theInputData;
+	
 	void Start () {
 		previousProgress = float.Parse(Configuration.GetString("Progress-"+property.LevelID, "0"));
 		previousCrowns = int.Parse(Configuration.GetString("Crown-"+property.LevelID, "0"));
 		previousGems = int.Parse(Configuration.GetString("Gems-"+property.LevelID, "0"));
-		mov = FindObjectOfType<LineMovement>();
+		if(mov.Length < 1){
+			mov = FindObjectsOfType<LineMovement>();
+		}
 		Time.timeScale = 1;
 		diePanel.alpha = 0;
 		diePanel.gameObject.SetActive(false);
@@ -136,7 +157,7 @@ public class GameManager : MonoBehaviour {
 		if(Input.GetKeyDown(theInputData.restartKey)){
 			RestartScene();
 		}
-		if(mov.isStarted && mov.isAlive && mov.isControllable){
+		if(isStarted && !isPlayerDie){
 			if(Input.GetKeyDown(theInputData.pauseKey)){
 				if(!isPaused){
 					Time.timeScale = 0;
@@ -251,7 +272,19 @@ public class GameManager : MonoBehaviour {
 			Debug.LogError("The file does not exist");
 		}
 	}
-	public void PlayAudio(){
+	
+	public void PlayGame ()
+	{
+		isStarted = true;
+		PlayAudio();
+		foreach(var line in mov) {
+			line.loopCount++;
+			line.makeBlock = true;
+		}
+	}
+	
+	public void PlayAudio ()
+	{
 		if(audioLoadType != AudioUsage.NoClip){
 			audioSource.clip = audioClip;
             // disable once CompareOfFloatsByEqualityOperator

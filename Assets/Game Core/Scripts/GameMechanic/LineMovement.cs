@@ -10,27 +10,23 @@ public class LineMovement : MonoBehaviour {
 	/// </summary>
 	public GameManager manager;
 	/// <summary>
-	/// Is the game started?
-	/// </summary>
-	[Header("Auto Defined")]
-	public bool isStarted;
-	/// <summary>
 	/// Is the player controllable?
 	/// </summary>
+	[Header("Auto Defined")]
 	public bool isControllable = true;
 	/// <summary>
 	/// Is the player alive (not dead)?
 	/// </summary>
 	public bool isAlive = true;
 	/// <summary>
-	/// Is the game finished?
-	/// </summary>
-	public bool isFinished;
-	/// <summary>
 	/// If ticked, there's an additional cube every tap
 	/// </summary>
 	[Header("Important Variables")]
 	public bool hasCenterTail;
+	/// <summary>
+	/// If this player is killed/finished the game, the game will over
+	/// </summary>
+	public bool dieAndFinishAffectGame = true;
 	/// <summary>
 	/// For autoplay purposes
 	/// </summary>
@@ -68,6 +64,22 @@ public class LineMovement : MonoBehaviour {
 	public Transform longTailParents;
 	public Transform centerTailParents;
 	public Transform autoPlayParents;
+	
+	[Header("Misc")]
+	public VariablesType variablesType = VariablesType.AsGameManager;
+	[Header("If custom")]
+	public float customSpeed = 15;
+	public KeyCode[] customInputs = {
+		KeyCode.Space,
+		KeyCode.Mouse0,
+		KeyCode.UpArrow
+	};
+	// Class/Enums/Structs
+	public enum VariablesType
+	{
+		AsGameManager,
+		Custom
+	}
 	//Hidden in Inspector
 	[HideInInspector] public int loopCount = 1;
 	[HideInInspector] public GameObject currentTail;
@@ -85,16 +97,22 @@ public class LineMovement : MonoBehaviour {
 	[HideInInspector] public Color previousColor;
 	[HideInInspector] public MeshRenderer m_renderer;
 	[HideInInspector] public BetterCamera cam;
+	[HideInInspector] public float speed;
+	[HideInInspector] public bool makeBlock;
+	[HideInInspector] public KeyCode[] inputCodes = {
+		KeyCode.Space,
+		KeyCode.Mouse0,
+		KeyCode.UpArrow
+	};
 	//Private variables
-	bool onGrounded, makeBlock, hasNoGrounded = false, stopGoing;
+	bool onGrounded, hasNoGrounded = false, stopGoing;
 	bool onceSpawn;
 	bool allowedToSpawn = true;
 	// Use this for initialization
 	void Start () {
+		// Find instances
 		cam = FindObjectOfType<BetterCamera>();
 		m_renderer = GetComponent<MeshRenderer>();
-		previousColor = m_renderer.material.color;
-		hasNoGrounded = false;
 		if (FindObjectOfType<GameInput> () != null) {
 			theInputData = FindObjectOfType<GameInput> ();
 		} else {
@@ -107,6 +125,10 @@ public class LineMovement : MonoBehaviour {
 				Debug.LogError ("There's no GameManager found in the scene.");
 			}
 		}
+		
+		// Set defaults
+		previousColor = m_renderer.material.color;
+		hasNoGrounded = false;
 		skinType = manager.skinType;
 		if(skinType.skinMesh != null){
 			skinMesh = skinType.skinMesh;
@@ -116,10 +138,22 @@ public class LineMovement : MonoBehaviour {
 			decoration = Instantiate(skinType.additionalDecoration, this.transform);
 		}
 		manager.OnCheckpointReset += Revive;
+		if(variablesType == VariablesType.AsGameManager)
+		{
+			speed = manager.lineSpeed;
+			inputCodes = theInputData.tapKeys;
+		}
+		else
+		{
+			speed = customSpeed;
+			inputCodes = customInputs;
+		}
 	}
 	
 	// Update is called once per frame
 	void Update () {
+		
+		// Temporary statements
 		onGrounded = isGrounded ();
 		pos = transform.position;
 		rot = transform.rotation;
@@ -127,9 +161,11 @@ public class LineMovement : MonoBehaviour {
 			SpawnTail (manager.tailType);
 			makeBlock = false;
 		}
-		if (isStarted) {
+		
+		// Movement tail spawning and stuff
+		if (manager.isStarted) {
 			if(!stopGoing){
-				transform.Translate(Vector3.forward * Time.deltaTime * manager.lineSpeed);
+				transform.Translate(Vector3.forward * Time.deltaTime * speed);
 				if (onGrounded && hit.collider.tag != "Obstacle" && hit.collider.tag != "Trigger") {
 					if(hasNoGrounded){
 						SpawnParticleFall();
@@ -138,13 +174,13 @@ public class LineMovement : MonoBehaviour {
 					}
 					if (currentTail != null)
 					{
-						currentTail.transform.Translate(Vector3.forward * Time.deltaTime * 0.5f * manager.lineSpeed);
-						currentTail.transform.localScale += new Vector3(0, 0, Time.deltaTime * 1f * manager.lineSpeed);
+						currentTail.transform.Translate(Vector3.forward * Time.deltaTime * 0.5f * speed);
+						currentTail.transform.localScale += new Vector3(0, 0, Time.deltaTime * 1f * speed);
 						currentTail.tag = manager.longTailTag;
 					}
 					if(anotherTail != null){
-						anotherTail.transform.Translate(Vector3.forward * Time.deltaTime * 0.5f * manager.lineSpeed);
-						anotherTail.transform.localScale += new Vector3(0, 0, Time.deltaTime * 1f * manager.lineSpeed);
+						anotherTail.transform.Translate(Vector3.forward * Time.deltaTime * 0.5f * speed);
+						anotherTail.transform.localScale += new Vector3(0, 0, Time.deltaTime * 1f * speed);
 						anotherTail.tag = manager.longTailTag;
 					}
 					if(skinType.appearEveryFrame.enable){
@@ -197,34 +233,28 @@ public class LineMovement : MonoBehaviour {
 				}
 			}
 		}
-		if(isAlive){
-			foreach (KeyCode key in theInputData.tapKeys) {
-				if(isControllable){
-					if (!isStarted && !EventSystem.current.IsPointerOverGameObject() && !noStart) {
-						if (Input.GetKeyDown (key)) {
-							StartGame (1);
-						}
-					}
-					if (isStarted) {
-						if(!manager.isPaused){
-							if (isGrounded ()) {
-								if (Input.GetKeyDown (key)) {
-									TurnBlock ();
-								}
-							}	
-						}else{
-							if (Input.GetKeyDown (key)) {
-								loopCount--;
-								manager.UnPause();
-								TurnBlock ();
-							}
-						}
-					}
+		
+		// Input detection
+		if(IsInputPressed()){
+			if (manager.isStarted) {
+				if(!manager.isPaused){
+					if (isGrounded ()) {
+						TurnBlock ();
+					}	
+				}else{
+					loopCount--;
+					manager.UnPause();
+					TurnBlock ();
 				}
 			}
+			if (!manager.isStarted && !noStart) {
+				StartGame (1);
+			}
 		}
-		if(m_renderer.material.color != previousColor){
-			previousColor = m_renderer.material.color;
+		
+		// Material adjustment
+		if(m_renderer.sharedMaterial.color != previousColor){
+			previousColor = m_renderer.sharedMaterial.color;
 			foreach(MeshRenderer obj in spawnedObjects){
 				if(obj != null){
 					obj.material.color = previousColor;
@@ -232,7 +262,23 @@ public class LineMovement : MonoBehaviour {
 			}
 		}
 	}
+	
+	public bool IsInputPressed ()
+	{
+		if(isAlive && isControllable){
+			foreach (KeyCode key in inputCodes) {
+				if (!EventSystem.current.IsPointerOverGameObject()) {
+					if (Input.GetKeyDown (key)) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+	
 	private ParticleSystem system;
+	
 	public void SpawnParticleFall () {
 		if(particeFall != null){
 			if(system == null){
@@ -300,13 +346,16 @@ public class LineMovement : MonoBehaviour {
 			}
 		}
 	}
+	
 	public bool isGrounded()
 	{
 		return Physics.Raycast(transform.position, -transform.up, out hit, transform.localScale.y * 0.5f + 0.03f);
 	}
+	
 	public void ReturnSpawnFrame(){
 		allowedToSpawn = true;
 	}
+	
 	public void TurnPlayer(Vector3 to, bool addLoopCount = false){
 		//manager.AddClass("Turn1", pos + (transform.forward * 0.9f));
 		transform.eulerAngles = to;
@@ -315,6 +364,7 @@ public class LineMovement : MonoBehaviour {
 		}
 		makeBlock = true;
 	}
+	
 	public void TurnBlock(){
 		if (loopCount % 2 != 0)
 		{
@@ -361,21 +411,17 @@ public class LineMovement : MonoBehaviour {
 		manager.PlayerTap(loopCount, transform.eulerAngles);
 		makeBlock = true;
 	}
+	
 	public void StartGame(int additionalTurn = 0){
 		additionalTurn = 2;
 		if (manager.isAudioReady) {
-			if (!isStarted) {
-				manager.PlayAudio ();
-				isStarted = true;
-				makeBlock = true;
-				loopCount += additionalTurn;
-				if(cam != null){
-					cam.enabled = true;
-				}
+			if (!manager.isStarted) {
+				manager.PlayGame();
 				manager.PlayerTap(loopCount, transform.eulerAngles);
 			}
 		}
 	}
+	
 	public void GameOver(bool isWinning, bool isFloating){
 		if(!isWinning){
 			if(!isFloating){
@@ -412,55 +458,69 @@ public class LineMovement : MonoBehaviour {
 			}
 			isControllable = false;
 			isAlive = false;
-			manager.ShowDiePanel(false);
+			if(dieAndFinishAffectGame)
+				manager.ShowDiePanel(false);
 		}else{
 			transform.eulerAngles = finishBlock;
 			makeBlock = true;
-			isFinished = true;
 			isControllable = false;
-			manager.ShowDiePanel(true);
+			if(dieAndFinishAffectGame){
+				manager.isFinished = true;
+				manager.ShowDiePanel(true);
+			}
 		}
 	}
+	
 	public void OnCollisionEnter(Collision col)
     {
-		foreach(string taga in deadlyTags){
-			if((taga == col.gameObject.tag) && isAlive && !isFinished){
+		foreach(string taga in deadlyTags)
+		{
+			if((taga == col.gameObject.tag) && isAlive && !manager.isFinished)
+			{
 				GameOver(false, false);
 			}
 		}
 		if(adjustGround){
-			if(col.gameObject.GetComponent<MeshRenderer>() != null){
+			if(col.gameObject.GetComponent<MeshRenderer>() != null)
+			{
 				float TargetY = col.gameObject.transform.localScale.y / 2 * -1;
 				col.gameObject.transform.position = new Vector3 (col.gameObject.transform.position.x,TargetY - 0.5f + transform.position.y, col.gameObject.transform.position.z);
 			}
 		}
 	}
+	
 	public void OnTriggerEnter(Collider other){
-		foreach(string tage in deadlyTags){
-			if((tage == other.gameObject.tag) && isAlive && !isFinished){
-				if(!isFinished)
+		foreach(string tage in deadlyTags)
+		{
+			if((tage == other.gameObject.tag) && isAlive && !manager.isFinished)
+			{
+				if(!manager.isFinished)
 				GameOver(false, true);
 			}
 		}
-		if(other.tag == "Finish"){
+		if(other.tag == "Finish")
+		{
 			GameOver(true, false);
 		}
-		if(other.gameObject.name.Contains("Turn1")){
+		if(other.gameObject.name.Contains("Turn1"))
+		{
 			transform.eulerAngles = turnBlock1;
 			loopCount++;
 			makeBlock = true;
 		}
-		if(other.gameObject.name.Contains("Turn2")){
+		if(other.gameObject.name.Contains("Turn2"))
+		{
 			transform.eulerAngles = turnBlock2;
 			loopCount++;
 			makeBlock = true;
 		}
 	}
+	
 	public void Revive(int check){
 		stopGoing = false;
 		isControllable = true;
 		isAlive = true;
-		isStarted = false;
+		manager.isStarted = false;
 		DestroySpawnedObjects();
 	}
 	public void DestroyWithTag(string tag){

@@ -96,11 +96,13 @@ public class Trig : MonoBehaviour {
 	public Transform CurrentObjectToSee;
 	
 	List<MeshRenderer> cachedRenderers = new List<MeshRenderer>();
+	GameManager mgr;
 	// Use this for initialization
 	void Start () {
 		cam = FindObjectOfType<BetterCamera>();
 		Got = FindObjectOfType<LineMovement>();
-		FindObjectOfType<GameManager>().OnCheckpointReset += ResetTrigger;
+		mgr = FindObjectOfType<GameManager>();
+		mgr.OnCheckpointReset += ResetTrigger;
 	}
 	
 	// Update is called once per frame
@@ -206,7 +208,7 @@ public class Trig : MonoBehaviour {
 				break;
 			case TrigType.StopAWhile:
 				Invoke ("RevokeStopping", Duration);
-				Got.isStarted = false;
+				mgr.isStarted = false;
 				Got.isControllable = false;
 				break;
 			case TrigType.ShakeCam:
@@ -269,7 +271,7 @@ public class Trig : MonoBehaviour {
 		}
 	}
 	void RevokeStopping(){
-		Got.isStarted = true;
+		mgr.isStarted = true;
 		Got.isControllable = true;
 	}
 }

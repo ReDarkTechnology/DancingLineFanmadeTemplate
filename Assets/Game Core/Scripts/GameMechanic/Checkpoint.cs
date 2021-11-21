@@ -1,7 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class Checkpoint : MonoBehaviour
 {
@@ -72,7 +70,7 @@ public class Checkpoint : MonoBehaviour
     	}else{
     		Crown.transform.Rotate(new Vector3(0,30,0) * Time.deltaTime);
     	}
-    	if(commitUnshatter && mov.isStarted){
+    	if(commitUnshatter && mgr.isStarted){
     		ReShatter();
     		mgr.AddCheckpoint(true);
     		commitUnshatter = false;
