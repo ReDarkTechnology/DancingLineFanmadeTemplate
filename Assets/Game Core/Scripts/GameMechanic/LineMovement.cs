@@ -278,7 +278,27 @@ public class LineMovement : MonoBehaviour {
 	}
 	
 	private ParticleSystem system;
+	public float GetSpeed ()
+	{
+		SetUpVariables();
+		return speed;
+	}
 	
+	public void SetUpVariables ()
+	{
+		if(manager == null) manager = FindObjectOfType<GameManager> ();
+		if(theInputData == null) theInputData = FindObjectOfType<GameInput> ();
+		if(variablesType == VariablesType.AsGameManager)
+		{
+			speed = manager.lineSpeed;
+			inputCodes = theInputData.tapKeys;
+		}
+		else
+		{
+			speed = customSpeed;
+			inputCodes = customInputs;
+		}
+	}
 	public void SpawnParticleFall () {
 		if(particeFall != null){
 			if(system == null){
