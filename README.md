@@ -1,4 +1,4 @@
-# Dancing Line Fanmade Template - by ReDark Technology
+# Dancing Line Fanmade Template - by Rhitomaic
  A template for Unity to make Dancing Line Fan-made levels!
  
  ![Preview](/preview.png)
@@ -15,7 +15,4 @@
  > _"Do not sell this template, it is supposed to be free for everyone who uses it."_
 
 Advertisement corner:
-- Buy me a coffee! : https://ko-fi.com/redarktechnology
-- Donate me : https://www.paypal.com/paypalme/redarktechnology
-- Join my Discord server : https://discord.gg/qxTSBjG4Vg
-
+- Donate! (Buy me a coffee) : https://ko-fi.com/rhitomaic
